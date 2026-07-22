@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Valorisation des déchets plastiques en pavés préfabriqués — Cotonou</title>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    color-scheme: light;
+    --navy:        #14304f;
+    --navy-ink:    #0f2438;
+    --blue:        #2a78d6;
+    --green:       #1b7a4a;
+    --page:        #f4f6f8;
+    --surface:     #ffffff;
+    --text-primary:   #14202b;
+    --text-secondary: #4c5a68;
+    --text-muted:     #7c8894;
+    --border:      #e1e6ea;
+    --banner-bg:   #eef3f8;
+    --banner-border: var(--blue);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: var(--page);
+    color: var(--text-primary);
+    line-height: 1.5;
+  }
+
+  .wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Header */
+  header.site-header {
+    background: var(--navy);
+    color: #ffffff;
+    padding: 28px 0 24px;
+    border-bottom: 4px solid var(--blue);
+  }
+  header.site-header h1 {
+    margin: 0 0 6px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.3;
+  }
+  header.site-header .byline {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #c7d3de;
+    font-weight: 400;
+  }
+
+  /* Status banner */
+  .status-banner {
+    background: var(--banner-bg);
+    border-left: 4px solid var(--banner-border);
+    color: var(--text-secondary);
+    padding: 12px 18px;
+    margin: 20px 0;
+    font-size: 0.88rem;
+    border-radius: 2px;
+  }
+  .status-banner strong { color: var(--navy-ink); }
+
+  /* KPI cards */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin: 24px 0 32px;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--blue);
+    border-radius: 4px;
+    padding: 18px 20px;
+  }
+  .kpi-card .kpi-value {
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: var(--navy-ink);
+    font-variant-numeric: proportional-nums;
+  }
+  .kpi-card .kpi-label {
+    margin-top: 4px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+  }
+
+  /* Sections / charts */
+  section.chart-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  section.chart-section h2 {
+    font-size: 1.05rem;
+    margin: 0 0 4px;
+    color: var(--navy-ink);
+  }
+  section.chart-section .chart-subtitle {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin: 0 0 16px;
+  }
+  .chart-canvas-wrap {
+    position: relative;
+    height: 360px;
+  }
+  .chart-note {
+    margin-top: 12px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-style: italic;
+    border-top: 1px solid var(--border);
+    padding-top: 10px;
+  }
+
+  /* Footer */
+  footer.site-footer {
+    border-top: 1px solid var(--border);
+    margin-top: 12px;
+    padding: 20px 0 40px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+  }
+  footer.site-footer p { margin: 4px 0; }
+
+  .loading-msg, .error-msg {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    padding: 40px 0;
+    text-align: center;
+  }
+  .error-msg { color: #b3261e; }
+
+  @media (max-width: 900px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 560px) {
+    .kpi-row { grid-template-columns: 1fr; }
+    header.site-header h1 { font-size: 1.2rem; }
+    .chart-canvas-wrap { height: 300px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <h1>Étude socio-économique et environnementale — Valorisation des déchets plastiques en pavés préfabriqués (Cotonou, Bénin)</h1>
+    <p class="byline">Joël AGBANLIN — Portfolio professionnel MEAL</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="status-banner">
+    <strong>Statut de l'étude&nbsp;:</strong> étude reconstituée à des fins de démonstration de compétences, basée sur un mémoire de licence réel (2016). Données individuelles simulées.
+  </div>
+
+  <div id="loading" class="loading-msg">Chargement des données…</div>
+  <div id="error" class="error-msg" style="display:none;"></div>
+
+  <div id="dashboard" style="visibility:hidden;">
+
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-value" id="kpi-menages">—</div>
+        <div class="kpi-label">Ménages enquêtés</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value" id="kpi-emplois">—</div>
+        <div class="kpi-label">Emplois recensés (chaîne de valeur)</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value" id="kpi-gain">—</div>
+        <div class="kpi-label">Gain de revenu potentiel moyen</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-value" id="kpi-volume">—</div>
+        <div class="kpi-label">Volume de plastique traité (kg/mois)</div>
+      </div>
+    </div>
+
+    <section class="chart-section">
+      <h2>Perception et pratiques des ménages, par quartier</h2>
+      <p class="chart-subtitle">Taux de tri des déchets, de connaissance de la filière pavés et de disposition à l'achat de pavés recyclés</p>
+      <div class="chart-canvas-wrap">
+        <canvas id="chartMenages"></canvas>
+      </div>
+    </section>
+
+    <section class="chart-section">
+      <h2>Revenu actuel vs revenu potentiel, par type d'acteur</h2>
+      <p class="chart-subtitle">Revenu mensuel moyen (FCFA) des collecteurs et artisans de la chaîne de valeur</p>
+      <div class="chart-canvas-wrap">
+        <canvas id="chartActeurs"></canvas>
+      </div>
+      <p class="chart-note">Le revenu potentiel est un scénario projeté (+15 à +25&nbsp;%) fondé sur la valorisation renforcée de la filière, et non une mesure d'impact réelle observée.</p>
+    </section>
+
+  </div>
+
+  <footer class="site-footer">
+    <p><strong>Note méthodologique&nbsp;:</strong> échantillon de convenance non probabiliste (120 ménages sur 3 quartiers, 25 acteurs de la chaîne de valeur). Les résultats sont indicatifs et ne sont pas généralisables à l'ensemble de la ville de Cotonou.</p>
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  const COLORS = {
+    navy: '#14304f',
+    blue: '#2a78d6',
+    green: '#1b7a4a',
+    grid: '#e1e6ea',
+    ink: '#4c5a68'
+  };
+
+  Chart.defaults.font.family = "system-ui, -apple-system, 'Segoe UI', sans-serif";
+  Chart.defaults.color = COLORS.ink;
+  Chart.defaults.borderColor = COLORS.grid;
+  Chart.defaults.animation = false;
+
+  function fetchCsv(path) {
+    return fetch(path)
+      .then(function (res) {
+        if (!res.ok) throw new Error('Impossible de charger ' + path + ' (HTTP ' + res.status + ')');
+        return res.text();
+      })
+      .then(function (text) {
+        return Papa.parse(text, { header: true, skipEmptyLines: true }).data;
+      });
+  }
+
+  Promise.all([
+    fetchCsv('donnees_menages.csv'),
+    fetchCsv('acteurs_chaine_valeur.csv')
+  ]).then(function (results) {
+    document.getElementById('loading').style.display = 'none';
+    build(results[0], results[1]);
+    document.getElementById('dashboard').style.visibility = 'visible';
+  }).catch(function (err) {
+    document.getElementById('loading').style.display = 'none';
+    var el = document.getElementById('error');
+    el.style.display = 'block';
+    el.textContent = 'Erreur de chargement des données CSV : ' + err.message +
+      '. Astuce : ouvrez ce dashboard via un serveur local (ex. GitHub Pages, Netlify, ou "npx serve") plutôt qu\'en double-cliquant sur le fichier, certains navigateurs bloquant la lecture de fichiers locaux par sécurité.';
+  });
+
+  function build(menages, acteurs) {
+    menages = menages.filter(function (r) { return r.quartier; });
+    acteurs = acteurs.filter(function (r) { return r.type_acteur; });
+
+    // ---- KPI ----
+    document.getElementById('kpi-menages').textContent = menages.length;
+    document.getElementById('kpi-emplois').textContent = acteurs.length;
+
+    var variations = acteurs.map(function (r) { return parseFloat(r.variation_pct); }).filter(function (v) { return !isNaN(v); });
+    var avgGain = variations.reduce(function (a, b) { return a + b; }, 0) / variations.length;
+    document.getElementById('kpi-gain').textContent = (avgGain * 100).toFixed(1).replace('.', ',') + ' %';
+
+    var volumes = acteurs.map(function (r) { return parseFloat(r.volume_kg_mois); }).filter(function (v) { return !isNaN(v); });
+    var totalVolume = volumes.reduce(function (a, b) { return a + b; }, 0);
+    document.getElementById('kpi-volume').textContent = totalVolume.toLocaleString('fr-FR');
+
+    // ---- Chart 1 : ménages par quartier ----
+    var quartiers = ['Akpakpa', 'Dantokpa', 'Fidjrossè'];
+    function tauxOui(rows, champ) {
+      if (!rows.length) return 0;
+      var n = rows.filter(function (r) { return r[champ] === 'Oui'; }).length;
+      return Math.round((n / rows.length) * 1000) / 10;
+    }
+    var tauxTri = [], tauxConnait = [], tauxAchat = [];
+    quartiers.forEach(function (q) {
+      var rows = menages.filter(function (r) { return r.quartier === q; });
+      tauxTri.push(tauxOui(rows, 'tri'));
+      tauxConnait.push(tauxOui(rows, 'connait'));
+      tauxAchat.push(tauxOui(rows, 'achat'));
+    });
+
+    new Chart(document.getElementById('chartMenages'), {
+      type: 'bar',
+      data: {
+        labels: quartiers,
+        datasets: [
+          { label: 'Trient leurs déchets', data: tauxTri, backgroundColor: COLORS.navy, borderRadius: 3, maxBarThickness: 42 },
+          { label: 'Connaissent la filière pavés', data: tauxConnait, backgroundColor: COLORS.blue, borderRadius: 3, maxBarThickness: 42 },
+          { label: 'Disposés à acheter des pavés recyclés', data: tauxAchat, backgroundColor: COLORS.green, borderRadius: 3, maxBarThickness: 42 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16 } },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) { return ctx.dataset.label + ' : ' + ctx.parsed.y + ' %'; }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 100,
+            grid: { color: COLORS.grid },
+            ticks: { callback: function (v) { return v + ' %'; } }
+          },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+
+    // ---- Chart 2 : revenu par type d'acteur ----
+    var types = ['Collecteur', 'Artisan'];
+    var revenuActuel = [], revenuPotentiel = [];
+    types.forEach(function (t) {
+      var rows = acteurs.filter(function (r) { return r.type_acteur === t; });
+      var actuel = rows.map(function (r) { return parseFloat(r.revenu_actuel); });
+      var potentiel = rows.map(function (r) { return parseFloat(r.revenu_potentiel); });
+      revenuActuel.push(Math.round(actuel.reduce(function (a, b) { return a + b; }, 0) / actuel.length));
+      revenuPotentiel.push(Math.round(potentiel.reduce(function (a, b) { return a + b; }, 0) / potentiel.length));
+    });
+
+    new Chart(document.getElementById('chartActeurs'), {
+      type: 'bar',
+      data: {
+        labels: types,
+        datasets: [
+          { label: 'Revenu actuel moyen (FCFA)', data: revenuActuel, backgroundColor: COLORS.navy, borderRadius: 3, maxBarThickness: 60 },
+          { label: 'Revenu potentiel moyen (FCFA)', data: revenuPotentiel, backgroundColor: COLORS.green, borderRadius: 3, maxBarThickness: 60 }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom', labels: { boxWidth: 12, padding: 16 } },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) { return ctx.dataset.label + ' : ' + ctx.parsed.y.toLocaleString('fr-FR') + ' FCFA'; }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            grid: { color: COLORS.grid },
+            ticks: { callback: function (v) { return v.toLocaleString('fr-FR'); } }
+          },
+          x: { grid: { display: false } }
+        }
+      }
+    });
+  }
+})();
+</script>
+
+</body>
+</html>
